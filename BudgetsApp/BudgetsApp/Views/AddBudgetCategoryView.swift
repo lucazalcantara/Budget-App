@@ -15,6 +15,11 @@ struct AddBudgetCategoryView: View {
     
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
+    private var budgetCategory: BudgetCategory?
+    
+    init(budgetCategory: BudgetCategory? = nil) {
+        self.budgetCategory = budgetCategory
+    }
     
     var isFormValid: Bool {
         
@@ -31,17 +36,23 @@ struct AddBudgetCategoryView: View {
         return messages.count == 0
     }
     
-    private func save() {
+    private func saveOrUpdate() {
         
-        let budgetCategory = BudgetCategory(context: viewContext)
-        budgetCategory.title = title
-        budgetCategory.total = total
+        if let budgetCategory {
+            let budget = BudgetCategory.byId(budgetCategory.objectID)
+            budget.title = title
+            budget.total = total
+        } else {
+            let budgetCategory = BudgetCategory(context: viewContext)
+            budgetCategory.title = title
+            budgetCategory.total = total
+        }
         
         do {
             try viewContext.save()
             dismiss()
         } catch {
-            print(error.localizedDescription)
+            print(error)
         }
     }
     
@@ -65,7 +76,14 @@ struct AddBudgetCategoryView: View {
                         .foregroundStyle(.red)
                 }
                 
-            }.toolbar {
+            }
+            .onAppear {
+                if let budgetCategory {
+                    title = budgetCategory.title ?? ""
+                    total = budgetCategory.total
+                }
+            }
+            .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
@@ -75,7 +93,7 @@ struct AddBudgetCategoryView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         if isFormValid {
-                            save()
+                            saveOrUpdate()
                         }
                         
                     }
